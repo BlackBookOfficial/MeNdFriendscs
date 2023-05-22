@@ -67,7 +67,7 @@ public:
 
     struct RageAntiAimConfig {
         bool enabled = false;
-        int pitch = 0; //Off, Down, Zero, Up
+        int pitch = 0; //Off, Down, Zero, Up, jit
         Yaw yawBase = Yaw::off;
         KeyBind manualForward{ std::string("manual forward"), KeyMode::Off },
             manualBackward{ std::string("manual backward"), KeyMode::Off },
