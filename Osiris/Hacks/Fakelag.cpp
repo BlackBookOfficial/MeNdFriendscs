@@ -32,6 +32,18 @@ void Fakelag::run(bool& sendPacket) noexcept
             srand(static_cast<unsigned int>(time(NULL)));
             chokedPackets = rand() % config->fakelag.limit + 1;
             break;
+        case 3: // autsim
+            if (EnginePrediction::getVelocity().length2D() < 50)
+                chokedPackets = config->fakelag.limit;
+            else
+                chokedPackets = std::clamp(static_cast<int>(std::ceilf((rand() % 128 + 32) / (speed * (memory->globalVars->intervalPerTick))))^2, 1, config->fakelag.limit);
+            break;
+        case 4: // tickbased random
+            if (EnginePrediction::getFlags() & 1)
+                chokedPackets = std::clamp(static_cast<int>(std::ceilf(128 / memory->globalVars->intervalPerTick)), 1, config->fakelag.limit);
+            else
+                chokedPackets = std::clamp(static_cast<int>(std::ceilf(64.5 / ((rand() % 260 + 1) * memory->globalVars->intervalPerTick))), 1, config->fakelag.limit);
+            break;
         }
     }
 

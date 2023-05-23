@@ -95,11 +95,25 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
             cmd->viewangles.x = -89.f;
             break;
         case 4: // updown jit
-            cmd->viewangles.x = flipHeadJitter ? -89.f : 89.f;
+            //cmd->viewangles.x = flipHeadJitter ? -89.f : 89.f;
+            cmd->viewangles.x = flipHeadJitter ? 89.f : 49.f;
+            break;
+        case 5: // down jit
+            if (sendPacket)
+                cmd->viewangles.x = 45.f;
+            else
+                cmd->viewangles.x = 89.f;
             break;
         default:
             break;
         }
+
+        /*if (flipHeadJitter = true) {
+            sendPacket = false; 
+        }
+        else {
+            sendPacket = true;
+        }*/
     }
     if (cmd->viewangles.y == currentViewAngles.y || Tickbase::isShifting())
     {

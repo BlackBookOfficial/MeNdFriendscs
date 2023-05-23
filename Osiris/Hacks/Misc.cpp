@@ -2157,8 +2157,9 @@ void Misc::autoStrafe(UserCmd* cmd, Vector& currentViewAngles) noexcept
     }
 
     //If we are on ground, noclip or in a ladder return
-    if ((EnginePrediction::getFlags() & 1) || localPlayer->moveType() == MoveType::NOCLIP || localPlayer->moveType() == MoveType::LADDER)
+    if ((EnginePrediction::getFlags() & 1) || localPlayer->moveType() == MoveType::NOCLIP || localPlayer->moveType() == MoveType::LADDER) {
         return;
+    }
 
     currentViewAngles.y += angle;
 
