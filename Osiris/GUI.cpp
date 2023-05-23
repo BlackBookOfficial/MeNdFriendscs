@@ -658,7 +658,7 @@ void GUI::renderFakelagWindow() noexcept
     ImGui::Columns(2, nullptr, false);
     ImGui::SetColumnOffset(1, 300.f);
     ImGui::Checkbox("Enabled", &config->fakelag.enabled);
-    ImGui::Combo("Mode", &config->fakelag.mode, "Static\0Adaptative\0Random\0");
+    ImGui::Combo("Mode", &config->fakelag.mode, "Static\0Adaptative\0Random\0autism\0tickrando\0");
     ImGui::PushItemWidth(220.0f);
     ImGui::SliderInt("Limit", &config->fakelag.limit, 1, 16, "%d");
     ImGui::PopItemWidth();
@@ -684,7 +684,7 @@ void GUI::renderRageAntiAimWindow() noexcept
     ImGui::SetColumnOffset(1, 300.f);
     ImGui::Checkbox("Enabled", &config->rageAntiAim.enabled);
     ImGui::Checkbox("Disable in freeztime", &config->disableInFreezetime);
-    ImGui::Combo("Pitch", &config->rageAntiAim.pitch, "Off\0Down\0Zero\0Up\0bounce\0");
+    ImGui::Combo("Pitch", &config->rageAntiAim.pitch, "Off\0Down\0Zero\0Up\0bounce\0autism\0");
     ImGui::Combo("Yaw base", reinterpret_cast<int*>(&config->rageAntiAim.yawBase), "Off\0Forward\0Backward\0Right\0Left\0Spin\0");
     ImGui::Combo("Yaw modifier", reinterpret_cast<int*>(&config->rageAntiAim.yawModifier), "Off\0Jitter\0");
     ImGui::PushItemWidth(220.0f);
