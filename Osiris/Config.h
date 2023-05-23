@@ -65,6 +65,11 @@ public:
         int limit = 1;
     } fakelag;
 
+    struct Resolver {
+        bool enable = false;
+        bool lbyresolve = false;
+    } resolver;
+
     struct RageAntiAimConfig {
         bool enabled = false;
         int pitch = 0; //Off, Down, Zero, Up, jit
@@ -424,6 +429,11 @@ public:
 
         struct Watermark {
             bool enabled = false;
+            bool cheat = true;
+            bool user = true;
+            bool fps = true;
+            bool latency = true;
+            bool wtime = true;
             ImVec2 pos;
         };
         Watermark watermark;
