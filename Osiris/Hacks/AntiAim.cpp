@@ -10,10 +10,6 @@
 #include "../SDK/NetworkChannel.h"
 #include "../SDK/UserCmd.h"
 
-static bool isShooting{ false };
-static bool didShoot{ false };
-static float lastShotTime{ 0.f };
-
 bool updateLby(bool update = false) noexcept
 {
     static float timer = 0.f;
@@ -84,8 +80,6 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
     if ((cmd->viewangles.x == currentViewAngles.x || Tickbase::isShifting()) && config->rageAntiAim.enabled)
     {
         static bool flipHeadJitter = false;
-        if (sendPacket && !AntiAim::getDidShoot())
-            flipHeadJitter ^= 1;
 
         switch (config->rageAntiAim.pitch)
         {
@@ -102,10 +96,9 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
             break;
         case 4: // updown jit
             //cmd->viewangles.x = flipHeadJitter ? -89.f : 89.f;
-            cmd->viewangles.x = flipHeadJitter ? -89.f : 89.f;
-            flipHeadJitter = !flipHeadJitter;
+            cmd->viewangles.x = flipHeadJitter ? 89.f : 49.f;
             break;
-        case 5: // down fake
+        case 5: // down jit
             if (sendPacket)
                 cmd->viewangles.x = 45.f;
             else
@@ -114,6 +107,13 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
         default:
             break;
         }
+
+        /*if (flipHeadJitter = true) {
+            sendPacket = false; 
+        }
+        else {
+            sendPacket = true;
+        }*/
     }
     if (cmd->viewangles.y == currentViewAngles.y || Tickbase::isShifting())
     {
@@ -123,7 +123,7 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
             float yaw = 0.f;
             static float staticYaw = 0.f;
             static bool flipJitter = false;
-            if (sendPacket && !AntiAim::getDidShoot())
+            if (sendPacket)
                 flipJitter ^= 1;
             if (config->rageAntiAim.atTargets)
             {
@@ -403,34 +403,4 @@ bool AntiAim::canRun(UserCmd* cmd) noexcept
         return true;
 
     return true;
-}
-
-float AntiAim::getLastShotTime()
-{
-    return lastShotTime;
-}
-
-bool AntiAim::getIsShooting()
-{
-    return isShooting;
-}
-
-bool AntiAim::getDidShoot()
-{
-    return didShoot;
-}
-
-void AntiAim::setLastShotTime(float shotTime)
-{
-    lastShotTime = shotTime;
-}
-
-void AntiAim::setIsShooting(bool shooting)
-{
-    isShooting = shooting;
-}
-
-void AntiAim::setDidShoot(bool shot)
-{
-    didShoot = shot;
 }

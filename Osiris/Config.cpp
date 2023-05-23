@@ -337,12 +337,6 @@ static void from_json(const json& j, Config::Fakelag& f)
     read(j, "Limit", f.limit);
 }
 
-static void from_json(const json& j, Config::Resolver& f)
-{
-    read(j, "Enable", f.enable);
-    read(j, "Resolve LBY", f.lbyresolve);
-}
-
 static void from_json(const json& j, Config::Tickbase& t)
 {
     read(j, "Doubletap", t.doubletap);
@@ -580,11 +574,6 @@ static void from_json(const json& j, Config::Misc::KeyBoardDisplay& kbd)
 static void from_json(const json& j, Config::Misc::Watermark& o)
 {
     read(j, "Enabled", o.enabled);
-    read(j, "Cheat", o.cheat);
-    read(j, "User", o.user);
-    read(j, "Fps", o.fps);
-    read(j, "Latency", o.latency);
-    read(j, "Time", o.wtime);
     read<value_t::object>(j, "Pos", o.pos);
 }
 
@@ -816,7 +805,6 @@ void Config::load(const char8_t* name, bool incremental) noexcept
     read(j, "Disable in freezetime", disableInFreezetime);
     read<value_t::object>(j, "Fake angle", fakeAngle);
     read<value_t::object>(j, "Fakelag", fakelag);
-    read<value_t::object>(j, "Resolver", resolver);
     read<value_t::object>(j, "Tickbase", tickbase);
     read<value_t::object>(j, "Backtrack", backtrack);
 
@@ -1140,12 +1128,6 @@ static void to_json(json& j, const Config::Fakelag& o, const Config::Fakelag& du
     WRITE("Limit", limit);
 }
 
-static void to_json(json& j, const Config::Resolver& o, const Config::Resolver& dummy = {})
-{
-    WRITE("Resolver", enable);
-    WRITE("LBY Resolver", lbyresolve);
-}
-
 static void to_json(json& j, const Config::Tickbase& o, const Config::Tickbase& dummy = {})
 {
     WRITE("Doubletap", doubletap);
@@ -1238,11 +1220,7 @@ static void to_json(json& j, const Config::Misc::KeyBoardDisplay& o, const Confi
 static void to_json(json& j, const Config::Misc::Watermark& o, const Config::Misc::Watermark& dummy = {})
 {
     WRITE("Enabled", enabled);
-    WRITE("Cheat", cheat);
-    WRITE("User", user);
-    WRITE("Fps", fps);
-    WRITE("Latency", latency);
-    WRITE("Time", wtime);
+
     if (const auto window = ImGui::FindWindowByName("Watermark")) {
         j["Pos"] = window->Pos;
     }
@@ -1597,7 +1575,6 @@ void Config::save(size_t id) const noexcept
         j["Disable in freezetime"] = disableInFreezetime;
         j["Fake angle"] = fakeAngle;
         j["Fakelag"] = fakelag;
-        j["Resolver"] = resolver;
         j["Tickbase"] = tickbase;
         j["Backtrack"] = backtrack;
 
@@ -1650,7 +1627,6 @@ void Config::reset() noexcept
     disableInFreezetime = true;
     fakeAngle = { };
     fakelag = { };
-    resolver = { };
     tickbase = { };
     backtrack = { };
     triggerbot = { };

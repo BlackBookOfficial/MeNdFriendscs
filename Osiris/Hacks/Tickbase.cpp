@@ -3,7 +3,6 @@
 #include "../Memory.h"
 
 #include "Tickbase.h"
-#include "AntiAim.h"
 
 #include "../SDK/ClientState.h"
 #include "../SDK/Entity.h"
@@ -121,7 +120,7 @@ bool Tickbase::canRun() noexcept
         return true;
     }
 
-    if ((ticksAllowedForProcessing < targetTickShift || chokedPackets > maxUserCmdProcessTicks - targetTickShift) && memory->globalVars->realtime - realTime > 1.0f && (memory->globalVars->realtime - AntiAim::getLastShotTime() > 1.0f || hasHadTickbaseActive == false))
+    if ((ticksAllowedForProcessing < targetTickShift || chokedPackets > maxUserCmdProcessTicks - targetTickShift) && memory->globalVars->realtime - realTime > 1.0f)
     {
         ticksAllowedForProcessing = min(ticksAllowedForProcessing++, maxUserCmdProcessTicks);
         chokedPackets = max(chokedPackets--, 0);
