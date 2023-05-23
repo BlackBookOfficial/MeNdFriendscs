@@ -666,6 +666,16 @@ void GUI::renderFakelagWindow() noexcept
     ImGui::Columns(1);
 }
 
+void GUI::renderResolverWindow() noexcept
+{
+    ImGui::Columns(2, nullptr, false);
+    ImGui::SetColumnOffset(1, 300.f);
+    ImGui::Checkbox("Enabled", &config->resolver.enable);
+    ImGui::Checkbox("Resolver LBY", &config->resolver.lbyresolve);
+    ImGui::NextColumn();
+    ImGui::Columns(1);
+}
+
 void GUI::renderLegitAntiAimWindow() noexcept
 {
     ImGui::Columns(2, nullptr, false);
@@ -1876,6 +1886,19 @@ void GUI::renderMiscWindow() noexcept
     ImGui::PopID();
 
     ImGui::Checkbox("Watermark", &config->misc.watermark.enabled);
+    ImGui::SameLine();
+    ImGui::PushID("Watermark");
+    if (ImGui::Button("..."))
+        ImGui::OpenPopup("");
+
+    if (ImGui::BeginPopup("")) {
+        ImGui::Checkbox("Cheat", &config->misc.watermark.cheat);
+        ImGui::Checkbox("User", &config->misc.watermark.user);
+        ImGui::Checkbox("Fps", &config->misc.watermark.fps);
+        ImGui::Checkbox("Latency", &config->misc.watermark.latency);
+        ImGui::Checkbox("Time", &config->misc.watermark.wtime);
+        ImGui::EndPopup();
+    }
     ImGuiCustom::colorPicker("Offscreen Enemies", config->misc.offscreenEnemies, &config->misc.offscreenEnemies.enabled);
     ImGui::SameLine();
     ImGui::PushID("Offscreen Enemies");
@@ -2450,6 +2473,7 @@ void GUI::renderGuiStyle() noexcept
                             if (ImGui::Button("AntiAim                 ", ImVec2{ 80, 20 })) activeSubTabRagebot = 3;
                             if (ImGui::Button("Fake Angle              ", ImVec2{ 80, 20 })) activeSubTabRagebot = 4;
                             if (ImGui::Button("FakeLag                 ", ImVec2{ 80, 20 })) activeSubTabRagebot = 5;
+                            if (ImGui::Button("Resolver                ", ImVec2{ 80, 20 })) activeSubTabRagebot = 6;
                             break;
                         case 3: //Visuals
                             ImGui::SetCursorPosY(10);
@@ -2523,6 +2547,10 @@ void GUI::renderGuiStyle() noexcept
                                 case 5:
                                     //FakeLag
                                     renderFakelagWindow();
+                                    break;
+                                case 6:
+                                    // Resolver
+                                    renderResolverWindow();
                                     break;
                                 default:
                                     break;
