@@ -464,62 +464,117 @@ bool AimbotFunction::hitboxIntersection(const matrix3x4 matrix[MAXSTUDIOBONES], 
     return false;
 }
 
+// This function takes 5 parameters:
+// entity: The entity to aim at.
+// matrix: The matrix that transforms the hitbox from world space to local space.
+// hitbox: The hitbox of the entity.
+// localEyePos: The local eye position of the entity.
+// _hitbox: The hitbox ID of the entity.
+// The function returns a vector of points that can be used to aim at the target.
 std::vector<Vector> AimbotFunction::multiPoint(Entity* entity, const matrix3x4 matrix[MAXSTUDIOBONES], StudioBbox* hitbox, Vector localEyePos, int _hitbox, int _multiPoint)
 {
+    // This function takes a vector and a matrix, and transforms the vector using the matrix.
     auto VectorTransformWrapper = [](const Vector& in1, const matrix3x4 in2, Vector& out)
     {
+        // This function takes a float array and a matrix, and transforms the array using the matrix.
         auto VectorTransform = [](const float* in1, const matrix3x4 in2, float* out)
         {
+            // This function takes two vectors, and calculates the dot product of the vectors
             auto dotProducts = [](const float* v1, const float* v2)
             {
+                // The dot product of two vectors is the sum of the products of the corresponding components of the vectors.
                 return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
             };
+
+            // Next, we calculate the dot products of the input vector and each row of the matrix.
             out[0] = dotProducts(in1, in2[0]) + in2[0][3];
             out[1] = dotProducts(in1, in2[1]) + in2[1][3];
             out[2] = dotProducts(in1, in2[2]) + in2[2][3];
         };
+
+        // Finally, we call the VectorTransform function to transform the input vector.
         VectorTransform(&in1.x, in2, &out.x);
     };
 
+    // First, we create a vector to store the points.
     std::vector<Vector> vecArray;
+
+    // Next, we get the center, minimum, and maximum values of the hitbox.
     Vector center, min, max;
 
+    // If the multi-point value is less than or equal to 0, we only add the center point to the vector and return.
     if (_multiPoint <= 0)
     {
         vecArray.emplace_back(center);
         return vecArray;
     }
 
+    // Next, we transform the minimum and maximum values of the hitbox using the matrix.
     VectorTransformWrapper(hitbox->bbMin, matrix[hitbox->bone], min);
     VectorTransformWrapper(hitbox->bbMax, matrix[hitbox->bone], max);
+
+    // We then calculate the center of the hitbox by averaging the minimum and maximum values.
     center = (min + max) * 0.5f;
 
+    // We add the center point to the vector.
     vecArray.emplace_back(center);
 
+    // Next, we calculate the relative angles between the center of the hitbox and the local eye position.
     Vector currentAngles = AimbotFunction::calculateRelativeAngle(center, localEyePos, Vector{});
 
+    // We then create a forward vector from the relative angles.
     Vector forward;
     Vector::fromAngle(currentAngles, &forward);
 
+    // We then create a right and left vector from the forward vector.
     Vector right = forward.cross(Vector{ 0, 0, 1 });
     Vector left = Vector{ -right.x, -right.y, right.z };
 
+    // We also create a top and bottom vector.
     Vector top = Vector{ 0, 0, 1 };
     Vector bottom = Vector{ 0, 0, -1 };
 
+    // We then calculate the multi-point value, which is a value between 0 and 1 that determines how far away from the center of the hitbox the additional points will be.
     float multiPoint = (min(_multiPoint, 95)) * 0.01f;
 
+    
     switch (_hitbox)
     {
+        /*
+          This switch statement determines how many points are added to the vector based on the hitbox ID.
+
+          Case Hitboxes::Head:
+            Five points are added to the vector: the center point, and the center point plus the top, bottom, right, and left vectors multiplied by the multi-point value.
+
+          Default:
+            Three points are added to the vector: the center point, and the center point plus the right and left vectors multiplied by the multi-point value.
+        */
+
     case Hitboxes::Head:
-        for (auto i = 0; i < 4; ++i)
+        /*
+          We add five points to the vector:
+          - The center point.
+          - The center point plus the top vector multiplied by the multi-point value.
+          - The center point plus the right vector multiplied by the multi-point value.
+          - The center point plus the left vector multiplied by the multi-point value.
+          - The center point plus the bottom vector multiplied by the multi-point value.
+        */
+        for (auto i = 0; i < 5; ++i)
             vecArray.emplace_back(center);
 
         vecArray[1] += top * (hitbox->capsuleRadius * multiPoint);
         vecArray[2] += right * (hitbox->capsuleRadius * multiPoint);
         vecArray[3] += left * (hitbox->capsuleRadius * multiPoint);
+        vecArray[4] += bottom * (hitbox->capsuleRadius * multiPoint);
         break;
-    default://rest
+
+    default: // rest
+        /*
+          We add three points to the vector:
+          - The center point.
+          - The center point plus the right vector multiplied by the multi-point value.
+          - The center point plus the left vector multiplied by the multi-point value.
+        */
         for (auto i = 0; i < 3; ++i)
             vecArray.emplace_back(center);
 
@@ -527,6 +582,7 @@ std::vector<Vector> AimbotFunction::multiPoint(Entity* entity, const matrix3x4 m
         vecArray[2] += left * (hitbox->capsuleRadius * multiPoint);
         break;
     }
+
     return vecArray;
 }
 
@@ -536,48 +592,76 @@ std::vector<Vector> AimbotFunction::multiPoint(Entity* entity, const matrix3x4 m
 // the weapon's spread, and the specified hit chance threshold.
 bool AimbotFunction::hitChance(Entity* localPlayer, Entity* entity, StudioHitboxSet* set, const matrix3x4 matrix[MAXSTUDIOBONES], Entity* activeWeapon, const Vector& destination, const UserCmd* cmd, const int hitChance) noexcept
 {
+    // Check if hit chance is enabled and the weapon has no spread. If so, return true.
     static auto isSpreadEnabled = interfaces->cvar->findVar("weapon_accuracy_nospread");
     if (!hitChance || isSpreadEnabled->getInt() >= 1)
         return true;
 
-    constexpr int maxSeed = 255;
+    // The maximum number of times to try to hit the target.
+    constexpr int maxSeed = 256;
 
+    // Calculate the angles to aim at.
     const Angle angles(destination + cmd->viewangles);
 
+    // The number of times the target was hit.
     int hits = 0;
+
+    // The number of times the target needs to be hit to have a hit chance of `hitChance`.
     const int hitsNeed = static_cast<int>(static_cast<float>(maxSeed) * (static_cast<float>(hitChance) / 100.f));
 
+    // Get the weapon's spread and inaccuracy.
     const auto weapSpread = activeWeapon->getSpread();
     const auto weapInaccuracy = activeWeapon->getInaccuracy();
+
+    // Get the local player's eye position.
     const auto localEyePosition = localPlayer->getEyePosition();
+
+    // Get the weapon's range.
     const auto range = activeWeapon->getWeaponData()->range;
 
+    // For each seed...
     for (int i = 0; i < maxSeed; i++)
     {
+        // Seed the random number generator.
         memory->randomSeed(i + 1);
+
+        // Generate random spread values.
         const float spreadX = memory->randomFloat(0.f, 2.f * static_cast<float>(M_PI));
         const float spreadY = memory->randomFloat(0.f, 2.f * static_cast<float>(M_PI));
+
+        // Calculate the inaccuracy and spread of the shot.
         auto inaccuracy = weapInaccuracy * memory->randomFloat(0.f, 1.f);
         auto spread = weapSpread * memory->randomFloat(0.f, 1.f);
 
+        // Calculate the view vector with the spread applied.
         Vector spreadView{ (cosf(spreadX) * inaccuracy) + (cosf(spreadY) * spread),
                            (sinf(spreadX) * inaccuracy) + (sinf(spreadY) * spread) };
+
+        // Calculate the direction to the target.
         Vector direction{ (angles.forward + (angles.right * spreadView.x) + (angles.up * spreadView.y)) * range };
 
+        // For each hitbox...
         for (int hitbox = 0; hitbox < Hitboxes::Max; hitbox++)
         {
+            // Check if the target is hit by the shot.
             if (hitboxIntersection(matrix, hitbox, set, localEyePosition, localEyePosition + direction))
             {
+                // Increment the number of hits.
                 hits++;
+
+                // Break out of the loop.
                 break;
             }
         }
 
+        // If the target has been hit enough times, return true.
         if (hits >= hitsNeed)
             return true;
 
+        // If the target has not been hit enough times, return false.
         if ((maxSeed - i + hits) < hitsNeed)
             return false;
     }
+    // Return false.
     return false;
 }

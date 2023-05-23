@@ -8,7 +8,7 @@
 
 std::deque<Resolver::SnapShot> snapshots;
 
-bool resolver = true;
+//bool resolver = true;
 
 void Resolver::reset() noexcept
 {
@@ -112,13 +112,14 @@ void Resolver::getEvent(GameEvent* event) noexcept
 	default:
 		break;
 	}
-	if (!resolver)
+	if (!config->resolver.enable)
 		snapshots.clear();
+
 }
 
 void Resolver::processMissedShots() noexcept
 {
-	if (!resolver)
+	if (!config->resolver.enable)
 	{
 		snapshots.clear();
 		return;
@@ -185,7 +186,7 @@ void Resolver::processMissedShots() noexcept
 
 void Resolver::runPreUpdate(Animations::Players player, Entity* entity) noexcept
 {
-	if (!resolver)
+	if (!config->resolver.enable)
 		return;
 
 	const auto misses = player.misses;
@@ -198,7 +199,7 @@ void Resolver::runPreUpdate(Animations::Players player, Entity* entity) noexcept
 
 void Resolver::runPostUpdate(Animations::Players player, Entity* entity) noexcept
 {
-	if (!resolver)
+	if (!config->resolver.enable)
 		return;
 
 	const auto misses = player.misses;
@@ -221,11 +222,11 @@ void Resolver::updateEventListeners(bool forceRemove) noexcept
 	static ImpactEventListener listener;
 	static bool listenerRegistered = false;
 
-	if (resolver && !listenerRegistered) {
+	if (config->resolver.enable && !listenerRegistered) {
 		interfaces->gameEventManager->addListener(&listener, "bullet_impact");
 		listenerRegistered = true;
 	}
-	else if ((!resolver || forceRemove) && listenerRegistered) {
+	else if ((!config->resolver.enable || forceRemove) && listenerRegistered) {
 		interfaces->gameEventManager->removeListener(&listener);
 		listenerRegistered = false;
 	}
