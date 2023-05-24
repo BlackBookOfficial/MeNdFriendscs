@@ -23,6 +23,8 @@ namespace Resolver
 		Animations::Players player;
 		const Model* model{ };
 		Vector eyePosition{};
+		Vector lbytest{};
+
 		Vector bulletImpact{};
 		bool gotImpact{ false };
 		float time{ -1 };

@@ -162,6 +162,7 @@ public:
         int timeLimit = 400;
         bool fakeLatency = false;
         int fakeLatencyAmount = 200;
+        bool tickCorrection = false;
     } backtrack;
 
     struct Chams {

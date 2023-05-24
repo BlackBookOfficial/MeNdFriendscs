@@ -79,6 +79,34 @@ bool autoDirection(Vector eyeAngle) noexcept
     return true;
 }
 
+
+
+/*float get_max_desync_delta() {
+
+    auto animstate = uintptr_t(this->animation_state());
+
+    float rate = 180;
+    float duckammount = *(float*)(animstate + 0xA4);
+    float speedfraction = max(0, min(*reinterpret_cast<float*>(animstate + 0xF8), 1));
+
+    float speedfactor = max(0, min(1, *reinterpret_cast<float*> (animstate + 0xFC)));
+
+    float unk1 = ((*reinterpret_cast<float*> (animstate + 0x11C) * -0.30000001) - 0.19999999) * speedfraction;
+    float unk2 = unk1 + 1.f;
+    float unk3;
+
+    if (duckammount > 0) {
+
+        unk2 += ((duckammount * speedfactor) * (0.5f - unk2));
+
+    }
+
+    unk3 = *(float*)(animstate + 0x334) * unk2;
+
+    return rate;
+
+}*/
+
 void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector& currentViewAngles, bool& sendPacket) noexcept
 {
     if ((cmd->viewangles.x == currentViewAngles.x || Tickbase::isShifting()) && config->rageAntiAim.enabled)
@@ -306,6 +334,25 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
                     flip = !flip;
                     return;
                 }
+            }
+            case 4: //fake spin lby breaker
+            {
+                if (updateLby())
+                {
+                    static int y2 = -179;
+                    int spinBotSpeedFast = config->fakeAngle.fakespinBase;
+
+                    y2 += spinBotSpeedFast;
+
+                    if (y2 >= 179)
+                        y2 = -179;
+
+                    cmd->viewangles.y += y2;
+                    sendPacket = false;
+                    flip = !flip;
+                    return;
+                }
+
             }
             break;
             }

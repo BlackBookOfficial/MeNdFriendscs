@@ -746,10 +746,16 @@ void GUI::renderFakeAngleWindow() noexcept
     ImGui::PopItemWidth();
 
     ImGui::Combo("Mode", &config->fakeAngle.peekMode, "Off\0Peek real\0Peek fake\0Jitter\0");
-    ImGui::Combo("Lby mode", &config->fakeAngle.lbyMode, "Normal\0Opposite\0Sway\0Fakespin\0");
+    ImGui::Combo("Lby mode", &config->fakeAngle.lbyMode, "Normal\0Opposite\0Sway\0Fakespin\0lbyspin\0");
     ImGui::PopItemWidth();
 
     if (config->fakeAngle.lbyMode == 3)
+    {
+        ImGui::PushItemWidth(220.0f);
+        ImGui::SliderInt("Fake Spin Base", &config->fakeAngle.fakespinBase, -180, 180, "%d");
+        ImGui::PopItemWidth();
+    }
+    if (config->fakeAngle.lbyMode == 4)
     {
         ImGui::PushItemWidth(220.0f);
         ImGui::SliderInt("Fake Spin Base", &config->fakeAngle.fakespinBase, -180, 180, "%d");

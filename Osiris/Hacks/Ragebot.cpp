@@ -296,7 +296,7 @@ void Ragebot::run(UserCmd* cmd) noexcept
 
                 currentSimulationTime = player.simulationTime;
             }
-
+            
             runRagebot(cmd, entity, entity->getBoneCache().memory, target, hitbox, activeWeapon, weaponIndex, localPlayerEyePosition, aimPunch, multiPoint, minDamage, damageDiff, bestAngle, bestTarget);
             resetMatrix(entity, backupBoneCache, backupOrigin, backupAbsAngle, backupMins, backupMaxs);
             if (bestTarget.notNull())
@@ -309,7 +309,7 @@ void Ragebot::run(UserCmd* cmd) noexcept
         if (bestTarget.notNull())
             break;
     }
-
+    
     if (bestTarget.notNull()) 
     {
         static Vector lastAngles{ cmd->viewangles };
@@ -352,3 +352,18 @@ void Ragebot::run(UserCmd* cmd) noexcept
         lastCommand = cmd->commandNumber;
     }
 }
+
+/*// Function to calculate the player's velocity from backtrack records
+Vector CalculateVelocity(const std::vector<BacktrackRecord>& records, int tick)
+{
+    if (tick >= 1 && tick < records.size())
+    {
+        const auto& previousRecord = records[tick - 1];
+        const auto& currentRecord = records[tick];
+
+        float deltaTime = currentRecord.simulationTime - previousRecord.simulationTime;
+        return (currentRecord.origin - previousRecord.origin) / deltaTime;
+    }
+
+    return Vector{ 0, 0, 0 };
+}*/

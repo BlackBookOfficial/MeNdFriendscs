@@ -2,6 +2,7 @@
 
 #include <array>
 #include <deque>
+#include "Animations.h"
 
 #include "../ConfigStructs.h"
 
@@ -21,6 +22,7 @@ namespace Backtrack
     void updateIncomingSequences() noexcept;
 
     float getLerp() noexcept;
+    int customTickCorrection(const Animations::Players::Record& record) noexcept;
 
     struct incomingSequence {
         int inreliablestate;

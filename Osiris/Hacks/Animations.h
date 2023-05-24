@@ -71,6 +71,8 @@ namespace Animations
 		};
 
 		std::deque<Record> backtrackRecords;
+		std::deque<Record> eyeAngles;
+		std::deque<Record> fakeAngleOffset;
 
 		std::array<matrix3x4, MAXSTUDIOBONES> matrix;
 		std::array<AnimationLayer, 13> layers { };
