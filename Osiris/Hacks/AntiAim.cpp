@@ -3,6 +3,7 @@
 #include "AimbotFunctions.h"
 #include "AntiAim.h"
 #include "Tickbase.h"
+#include "Animations.h"
 
 #include "../SDK/Engine.h"
 #include "../SDK/Entity.h"

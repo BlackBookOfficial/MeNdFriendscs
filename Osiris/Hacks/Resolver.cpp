@@ -6,9 +6,12 @@
 
 #include "../SDK/GameEvent.h"
 
-std::deque<Resolver::SnapShot> snapshots;
+#include <deque>
+#include "../SDK/Entity.h"
+#include "Resolver.h"
 
-//bool resolver = true;
+
+std::deque<Resolver::SnapShot> snapshots;
 
 void Resolver::reset() noexcept
 {

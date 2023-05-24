@@ -4,6 +4,7 @@
 #include "Animations.h"
 #include "Backtrack.h"
 #include "Tickbase.h"
+#include "../Logger.h"
 
 #include "../SDK/ConVar.h"
 #include "../SDK/Entity.h"
@@ -126,7 +127,7 @@ float Backtrack::getLerp() noexcept
     }
 }
 */
-void Backtrack::run(UserCmd* cmd) noexcept
+/*void Backtrack::run(UserCmd* cmd) noexcept
 {
     if (!config->backtrack.enabled)
         return;
@@ -150,6 +151,7 @@ void Backtrack::run(UserCmd* cmd) noexcept
     int bestTargetIndex = 0;
     int bestRecordIndex = 0;
     int bestTickCorrection = 0;
+    int bestBacktrackTick = 0; // Added variable to store the targeted backtrack tick
 
     const auto aimPunch = activeWeapon->requiresRecoilControl() ? localPlayer->getAimPunch() : Vector{ };
 
@@ -188,6 +190,7 @@ void Backtrack::run(UserCmd* cmd) noexcept
                 bestTargetIndex = i;
                 bestRecordIndex = j;
                 bestTickCorrection = tickCorrection;
+                bestBacktrackTick = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection; // Calculate the targeted backtrack tick
             }
         }
     }
@@ -201,7 +204,148 @@ void Backtrack::run(UserCmd* cmd) noexcept
         const int correctedTickCount = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection;
         cmd->tickCount = correctedTickCount;
     }
+    if (!config->resolver.enable) {
+        // Output the targeted backtrack tick
+        if (bestTargetIndex && bestBacktrackTick)
+            Logger::addLog((" [Backtrack] Targeting Tick " + std::to_string(bestBacktrackTick)).c_str());
+    }
 }
+*/
+
+// Interpolates the position based on a given time within a set of recorded positions
+Vector interpolatePosition(const const std::deque<Vector>& positions, float targetTime)
+{
+    if (positions.empty())
+        return Vector{};
+
+    // Find the closest recorded positions based on index
+    size_t startIndex = 0;
+    size_t endIndex = positions.size() - 1;
+    while (startIndex < endIndex - 1)
+    {
+        size_t midIndex = (startIndex + endIndex) / 2;
+        float midTime = static_cast<float>(midIndex) / positions.size(); // Assuming uniform distribution of positions over time
+        if (targetTime < midTime)
+            endIndex = midIndex;
+        else
+            startIndex = midIndex;
+    }
+
+    const Vector& startPosition = positions[startIndex];
+    const Vector& endPosition = positions[endIndex];
+
+    // Calculate the interpolation factor
+    const float interpolationFactor = (targetTime - static_cast<float>(startIndex) / positions.size()) /
+        (static_cast<float>(endIndex) / positions.size() - static_cast<float>(startIndex) / positions.size());
+
+    // Perform linear interpolation to get the interpolated position
+    const Vector interpolatedPosition = startPosition + (endPosition - startPosition) * interpolationFactor;
+
+    return interpolatedPosition;
+}
+
+// Adjusts the aim position based on the backtracked position and aim punch (recoil)
+Vector adjustAimPosition(const Vector& backtrackPosition, const Vector& aimPunch)
+{
+    // Apply aim punch adjustment to the backtracked position
+    Vector adjustedAimPosition = backtrackPosition - aimPunch;
+
+    // Perform additional adjustment logic if needed
+    // ...
+
+    return adjustedAimPosition;
+}
+
+void Backtrack::run(UserCmd* cmd) noexcept
+{
+    if (!config->backtrack.enabled)
+        return;
+
+    if (!(cmd->buttons & UserCmd::IN_ATTACK))
+        return;
+
+    if (!localPlayer || !localPlayer->isAlive())
+        return;
+
+    if (!config->backtrack.ignoreFlash && localPlayer->isFlashed())
+        return;
+
+    const auto activeWeapon = localPlayer->getActiveWeapon();
+    if (!activeWeapon || !activeWeapon->clip())
+        return;
+
+    auto localPlayerEyePosition = localPlayer->getEyePosition();
+
+    auto bestFov = 255.f;
+    int bestTargetIndex = 0;
+    int bestRecordIndex = 0;
+    int bestTickCorrection = 0;
+    int bestBacktrackTick = 0;
+
+    const auto aimPunch = activeWeapon->requiresRecoilControl() ? localPlayer->getAimPunch() : Vector{ };
+
+    for (int i = 1; i <= interfaces->engine->getMaxClients(); i++) {
+        auto entity = interfaces->entityList->getEntity(i);
+        if (!entity || entity == localPlayer.get() || entity->isDormant() || !entity->isAlive() || !entity->isOtherEnemy(localPlayer.get()))
+            continue;
+
+        const auto player = Animations::getPlayer(i);
+        if (!player.gotMatrix)
+            continue;
+
+        if (player.backtrackRecords.empty() || (!config->backtrack.ignoreSmoke && memory->lineGoesThroughSmoke(localPlayer->getEyePosition(), entity->getAbsOrigin(), 1)))
+            continue;
+
+        for (size_t j = 0; j < player.backtrackRecords.size(); j++) {
+            const auto& record = player.backtrackRecords[j];
+
+            if (!Backtrack::valid(record.simulationTime))
+                continue;
+
+            const Vector& position = record.positions.front();
+
+            const int tickCorrection = customTickCorrection(record);
+
+            const Vector extrapolatedHeadPosition = position + (localPlayerEyePosition - position).normalized() * 5;
+
+            const Vector angle = AimbotFunction::calculateRelativeAngle(localPlayerEyePosition, extrapolatedHeadPosition, localPlayer->getAbsAngle());
+            const float fov = std::hypotf(angle.x, angle.y);
+
+            if (fov < bestFov) {
+                bestFov = fov;
+                bestTargetIndex = i;
+                bestRecordIndex = j;
+                bestTickCorrection = tickCorrection;
+                bestBacktrackTick = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection;
+            }
+        }
+    }
+
+    const auto player = Animations::getPlayer(bestTargetIndex);
+    if (!player.gotMatrix)
+        return;
+
+    if (bestRecordIndex) {
+        const auto& record = player.backtrackRecords[bestRecordIndex];
+        const int correctedTickCount = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection;
+        cmd->tickCount = correctedTickCount;
+
+    }
+
+        if (bestTargetIndex && bestBacktrackTick) {
+            Logger::addLog((" [Backtrack] Targeting Tick " + std::to_string(bestBacktrackTick)).c_str());
+
+            // Perform additional complex backtracking operations using the bestBacktrackTick value
+            const auto& record = player.backtrackRecords[bestRecordIndex];
+            const float backtrackTime = record.simulationTime + getLerp();
+            const Vector backtrackPosition = interpolatePosition(record.positions, backtrackTime);
+            const Vector adjustedAimPosition = adjustAimPosition(backtrackPosition, aimPunch);
+
+            // Use the adjusted aim position for further processing or aiming
+            // ...
+        }
+}
+
 
 int Backtrack::customTickCorrection(const Animations::Players::Record& record) noexcept
 {
