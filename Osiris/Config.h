@@ -63,6 +63,7 @@ public:
         bool enabled = false;
         int mode = 0;
         int limit = 1;
+        int secondchoke = 0;
     } fakelag;
 
     struct Resolver {
@@ -92,6 +93,7 @@ public:
         int rightLimit = 60;
         int peekMode = 0; //Off, Peek real, Peek fake
         int lbyMode = 0; // Normal, Opposite, sway, 
+        int fakespinBase = 0; //-180/180
     } fakeAngle;
 
     struct Tickbase {

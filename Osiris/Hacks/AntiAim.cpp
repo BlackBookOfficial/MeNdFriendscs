@@ -254,6 +254,8 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
                 break;
             }
 
+            static bool flip = false;
+
             switch (config->fakeAngle.lbyMode)
             {
             case 0: // Normal(sidemove)
@@ -274,7 +276,6 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
                 }
                 break;
             case 2: //Sway (flip every lby update)
-                static bool flip = false;
                 if (updateLby())
                 {
                     cmd->viewangles.y += !flip ? leftDesyncAngle : rightDesyncAngle;
@@ -285,6 +286,28 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
                 if (!sendPacket)
                     cmd->viewangles.y += flip ? leftDesyncAngle : rightDesyncAngle;
                 break;
+            case 3: //fake spin
+            {
+                if (!sendPacket) {
+                    static int y2 = -179;
+                    int spinBotSpeedFast = config->fakeAngle.fakespinBase;
+
+                    y2 += spinBotSpeedFast;
+
+                    if (y2 >= 179)
+                        y2 = -179;
+
+                    cmd->viewangles.y = y2;
+                }
+                if (updateLby())
+                {
+                    cmd->viewangles.y += !flip ? leftDesyncAngle : rightDesyncAngle;
+                    sendPacket = false;
+                    flip = !flip;
+                    return;
+                }
+            }
+            break;
             }
 
             if (sendPacket)

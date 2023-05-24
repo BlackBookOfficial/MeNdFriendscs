@@ -11,6 +11,8 @@
 
 void Fakelag::run(bool& sendPacket) noexcept
 {
+    static bool FlipLag = false;
+
     if (!localPlayer || !localPlayer->isAlive())
         return;
 
@@ -52,6 +54,10 @@ void Fakelag::run(bool& sendPacket) noexcept
                 chokedPackets = std::clamp(static_cast<int>(std::ceilf(128 / memory->globalVars->intervalPerTick)), 1, config->fakelag.limit);
             else
                 chokedPackets = std::clamp(static_cast<int>(std::ceilf(64.f / ((rand() % 260 + 1) * memory->globalVars->intervalPerTick))), 1, config->fakelag.limit);
+            break;
+        case 5: // flip, long to quick
+            chokedPackets = FlipLag ? config->fakelag.secondchoke : config->fakelag.limit;
+            FlipLag = !FlipLag;
             break;
         }
     }
