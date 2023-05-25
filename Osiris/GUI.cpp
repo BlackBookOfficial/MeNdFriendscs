@@ -658,7 +658,7 @@ void GUI::renderFakelagWindow() noexcept
     ImGui::Columns(2, nullptr, false);
     ImGui::SetColumnOffset(1, 300.f);
     ImGui::Checkbox("Enabled", &config->fakelag.enabled);
-    ImGui::Combo("Mode", &config->fakelag.mode, "Static\0Adaptative\0Random\0autism\0tickrando\0Flip\0");
+    ImGui::Combo("Mode", &config->fakelag.mode, "Static\0Adaptative\0Random\0autism\0tickrando\0Flip\0aidynamic\0");
     ImGui::PushItemWidth(220.0f);
     ImGui::SliderInt("Limit", &config->fakelag.limit, 1, 16, "%d");
     ImGui::PopItemWidth();
@@ -667,6 +667,12 @@ void GUI::renderFakelagWindow() noexcept
     {
         ImGui::PushItemWidth(220.0f);
         ImGui::SliderInt("flip choke", &config->fakelag.secondchoke, 1, 16, "%d");
+        ImGui::PopItemWidth();
+    }
+    if (config->fakelag.mode == 6)
+    {
+        ImGui::PushItemWidth(220.0f);
+        ImGui::SliderInt("jitter amount", &config->fakelag.jitter, 1, 16, "%d");
         ImGui::PopItemWidth();
     }
 
@@ -745,8 +751,8 @@ void GUI::renderFakeAngleWindow() noexcept
     ImGui::SliderInt("Right limit", &config->fakeAngle.rightLimit, 0, 60, "%d");
     ImGui::PopItemWidth();
 
-    ImGui::Combo("Mode", &config->fakeAngle.peekMode, "Off\0Peek real\0Peek fake\0Jitter\0");
-    ImGui::Combo("Lby mode", &config->fakeAngle.lbyMode, "Normal\0Opposite\0Sway\0Fakespin\0lbyspin\0");
+    ImGui::Combo("Mode", &config->fakeAngle.peekMode, "Off\0Peek real\0Peek fake\0Jitter\0Quantum Peek\0");
+    ImGui::Combo("Lby mode", &config->fakeAngle.lbyMode, "Normal\0Opposite\0Sway\0Fakespin\0lbyspin\0dynamic jitter\0Chaotic LBY\0Disruptive LBY\0");
     ImGui::PopItemWidth();
 
     if (config->fakeAngle.lbyMode == 3)
@@ -775,6 +781,8 @@ void GUI::renderBacktrackWindow() noexcept
     ImGui::Checkbox("Ignore flash", &config->backtrack.ignoreFlash);
     ImGui::PushItemWidth(220.0f);
     ImGui::SliderInt("Time limit", &config->backtrack.timeLimit, 1, 200, "%d ms");
+    ImGui::PushItemWidth(220.0f);
+    //ImGui::SliderInt("extrapolated ticks", &config->backtrack.extrapolatedTickcount, -16, 16, "%d ticks");
     ImGui::PopItemWidth();
     ImGui::NextColumn();
     ImGui::Checkbox("Enabled Fake Latency", &config->backtrack.fakeLatency);

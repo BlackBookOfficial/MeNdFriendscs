@@ -59,6 +59,27 @@ void Fakelag::run(bool& sendPacket) noexcept
             chokedPackets = FlipLag ? config->fakelag.secondchoke : config->fakelag.limit;
             FlipLag = !FlipLag;
             break;
+        case 6: // Dynamic
+            // Calculate the variation in ticks based on the jitter percentage
+            const float averageLatency = interfaces->engine->getNetworkChannel()->getLatency(0);
+            const int averageLatencyTicks = static_cast<int>(averageLatency * memory->globalVars->intervalPerTick);
+            const int jitterTicks = static_cast<int>(config->fakelag.jitter * averageLatencyTicks);
+
+            // Calculate the current tickrate
+            const float tickRate = 1.0f / memory->globalVars->intervalPerTick;
+
+            // Calculate the number of ticks per second
+            const int ticksPerSecond = static_cast<int>(tickRate);
+
+            // Calculate the number of choked packets based on the average latency
+            chokedPackets = std::clamp(averageLatencyTicks, 1, config->fakelag.limit);
+
+            // Add random jitter to the number of choked packets
+            chokedPackets += rand() % (2 * jitterTicks + 1) - jitterTicks;
+
+            // Clamp the number of choked packets to a valid range
+            chokedPackets = std::clamp(chokedPackets, 0, config->fakelag.limit);
+            break;
         }
     }
 

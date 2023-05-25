@@ -264,7 +264,7 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
             case 0:
                 break;
             case 1: // Peek real
-                if(!isInvertToggled)
+                if (!isInvertToggled)
                     invert = !autoDirection(cmd->viewangles);
                 else
                     invert = autoDirection(cmd->viewangles);
@@ -278,7 +278,34 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
             case 3: // Jitter
                 if (sendPacket)
                     invert = !invert;
-                break;
+            case 4: // ai - Quantum Peek
+            {
+                static bool isPeeking = false;
+                static float lastPeekTime = 0.0f;
+                static float peekDuration = 0.5f; // Adjust the duration of the peek
+
+                // Check if it's time to start a new peek
+                if (!isPeeking && memory->globalVars->currenttime - lastPeekTime > peekDuration)
+                {
+                    isPeeking = true;
+                    lastPeekTime = memory->globalVars->currenttime;
+                }
+
+                // Perform the quantum peek
+                if (isPeeking)
+                {
+                    // Alternate between two view angles rapidly
+                    if (static_cast<int>(memory->globalVars->currenttime * 10.0f) % 2 == 0)
+                        cmd->viewangles.y += leftDesyncAngle;
+                    else
+                        cmd->viewangles.y += rightDesyncAngle;
+                }
+
+                // Reset the peek state after the peek duration
+                if (memory->globalVars->currenttime - lastPeekTime > peekDuration)
+                    isPeeking = false;
+            }
+            break;
             default:
                 break;
             }
@@ -336,6 +363,7 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
                     return;
                 }
             }
+            break;
             case 4: //fake spin lby breaker
             {
                 if (updateLby())
@@ -353,9 +381,75 @@ void AntiAim::rage(UserCmd* cmd, const Vector& previousViewAngles, const Vector&
                     flip = !flip;
                     return;
                 }
-
             }
             break;
+            case 5: // ai - Dynamic Jitter
+                if (sendPacket)
+                {
+                    static bool flip = false;
+                    static float lastLbyUpdateTime = 0.0f;
+
+                    // Check if LBY was updated recently
+                    if (memory->globalVars->currenttime - lastLbyUpdateTime < memory->globalVars->intervalPerTick * 2.0f)
+                    {
+                        // Jitter left or right based on flip state
+                        cmd->viewangles.y += flip ? leftDesyncAngle : rightDesyncAngle;
+                        flip = !flip;
+                    }
+                    else
+                    {
+                        // Perform regular jitter
+                        if (flip)
+                            cmd->viewangles.y += leftDesyncAngle;
+                        else
+                            cmd->viewangles.y += rightDesyncAngle;
+                    }
+
+                    // Store the current LBY update time
+                    lastLbyUpdateTime = memory->globalVars->currenttime;
+                }
+            break;
+            case 6: // ai - Chaotic LBY
+            {
+                static float lastLBYUpdateTime = 0.0f;
+                static float lbyUpdateInterval = 1.0f; // Adjust the interval between LBY updates
+
+                // Check if it's time to update the LBY
+                if (memory->globalVars->currenttime - lastLBYUpdateTime > lbyUpdateInterval)
+                {
+                    // Generate a random LBY offset within a range
+                    static float lbyOffsetRange = 30.0f; // Adjust the range of LBY offsets
+                    float randomOffset = (rand() / static_cast<float>(RAND_MAX)) * lbyOffsetRange - (lbyOffsetRange / 2.0f);
+
+                    // Apply the random LBY offset
+                    cmd->viewangles.y += randomOffset;
+
+                    // Update the LBY update time
+                    lastLBYUpdateTime = memory->globalVars->currenttime;
+                }
+            }
+            break;
+            case 7:  // ai - Disruptive LBY
+                static bool disruptLBY = false;
+                static float lastLBYUpdateTime = 0.0f;
+                static float lbyUpdateInterval = 1.5f; // Adjust the interval between LBY updates
+
+                // Check if it's time to update the LBY
+                if (memory->globalVars->currenttime - lastLBYUpdateTime > lbyUpdateInterval)
+                {
+                    // Toggle the disruptLBY state
+                    disruptLBY = !disruptLBY;
+
+                    // Apply a large LBY offset if disruptLBY is true
+                    float lbyOffset = disruptLBY ? 180.0f : 0.0f;
+
+                    // Apply the LBY offset to the view angle
+                    cmd->viewangles.y += lbyOffset;
+
+                    // Update the LBY update time
+                    lastLBYUpdateTime = memory->globalVars->currenttime;
+                }
+                break;
             }
 
             if (sendPacket)

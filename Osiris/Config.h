@@ -64,6 +64,7 @@ public:
         int mode = 0;
         int limit = 1;
         int secondchoke = 0;
+        int jitter = 0;
     } fakelag;
 
     struct Resolver {
@@ -163,6 +164,7 @@ public:
         bool fakeLatency = false;
         int fakeLatencyAmount = 200;
         bool tickCorrection = false;
+        int extrapolatedTickcount = 0;
     } backtrack;
 
     struct Chams {

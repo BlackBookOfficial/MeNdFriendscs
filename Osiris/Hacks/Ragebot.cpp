@@ -9,6 +9,8 @@
 #include "EnginePrediction.h"
 #include "Resolver.h"
 
+#include "../Logger.h"
+
 #include "../SDK/Entity.h"
 #include "../SDK/UserCmd.h"
 #include "../SDK/Utils.h"
@@ -276,12 +278,18 @@ void Ragebot::run(UserCmd* cmd) noexcept
                 if (bestTick <= -1)
                     continue;
 
+                // Logging the targeted and original ticks
+                if (bestTarget.notNull())
+                    if (activeWeapon->nextPrimaryAttack() <= memory->globalVars->serverTime())
+                        Logger::addLog("Backtracking - Targeted Tick: " + std::to_string(bestTick));
+
                 memcpy(entity->getBoneCache().memory, records->at(bestTick).matrix, std::clamp(entity->getBoneCache().size, 0, MAXSTUDIOBONES) * sizeof(matrix3x4));
                 memory->setAbsOrigin(entity, records->at(bestTick).origin);
                 memory->setAbsAngle(entity, Vector{ 0.f, records->at(bestTick).absAngle.y, 0.f });
                 memory->setCollisionBounds(entity->getCollideable(), records->at(bestTick).mins, records->at(bestTick).maxs);
 
                 currentSimulationTime = records->at(bestTick).simulationTime;
+
             }
             else
             {
@@ -352,18 +360,3 @@ void Ragebot::run(UserCmd* cmd) noexcept
         lastCommand = cmd->commandNumber;
     }
 }
-
-/*// Function to calculate the player's velocity from backtrack records
-Vector CalculateVelocity(const std::vector<BacktrackRecord>& records, int tick)
-{
-    if (tick >= 1 && tick < records.size())
-    {
-        const auto& previousRecord = records[tick - 1];
-        const auto& currentRecord = records[tick];
-
-        float deltaTime = currentRecord.simulationTime - previousRecord.simulationTime;
-        return (currentRecord.origin - previousRecord.origin) / deltaTime;
-    }
-
-    return Vector{ 0, 0, 0 };
-}*/

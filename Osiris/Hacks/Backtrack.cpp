@@ -27,6 +27,89 @@ struct Cvars {
 
 static Cvars cvars;
 
+// Define the minimum and maximum values for the extrapolatedTickcount
+const float extrapolatedTickcountMin = 0.0f;
+const float extrapolatedTickcountMax = 100.0f;
+const float extrapolatedTickcountPrecision = 0.01f;
+
+// Constants
+constexpr float MAX_SPEED = 250.0f;  // Maximum player speed in units per second
+constexpr float TICK_RATE = 64.0f;  // Server tick rate in ticks per second
+
+// Calculate the ideal backtrack.extrapolatedTickcount
+float calculateExtrapolatedTickcount(float speed)
+{
+    // Convert travel time to ticks by multiplying with server tick rate
+    float tickcount = speed * memory->globalVars->currenttime;
+
+    // Round the tickcount to the nearest integer value
+    int roundedTickcount = static_cast<int>(tickcount + 0.5f);
+
+    // Clamp the rounded tickcount to a minimum of 1 tick
+    int clampedTickcount = max(roundedTickcount, 1);
+
+    // Return the clamped tickcount as the ideal backtrack.extrapolatedTickcount
+    return static_cast<float>(clampedTickcount);
+}
+
+/*// Function to calculate the ideal backtrack extrapolated tick count
+float calculateExtrapolatedTickCount(const std::vector<float>& targetTickRates, float maxTickCount)
+{
+    // Sort the target tick rates in ascending order
+    std::vector<float> sortedTickRates = targetTickRates;
+    std::sort(sortedTickRates.begin(), sortedTickRates.end());
+
+    // Initialize the ideal tick count to the maximum tick count
+    float idealTickCount = maxTickCount;
+
+    // Iterate through the sorted tick rates
+    for (size_t i = 0; i < sortedTickRates.size() - 1; i++)
+    {
+        // Calculate the tick count difference between adjacent tick rates
+        float tickRateDifference = sortedTickRates[i + 1] - sortedTickRates[i];
+
+        // Calculate the maximum tick count between the two tick rates
+        float maxTickCountBetweenRates = std::ceil(1.0f / tickRateDifference);
+
+        // Update the ideal tick count if the maximum tick count is smaller
+        if (maxTickCountBetweenRates < idealTickCount)
+            idealTickCount = maxTickCountBetweenRates;
+    }
+
+    return idealTickCount;
+}*/
+/*float calculateExtrapolatedTickcount(const Config& config, const Vector& localPlayerEyePosition, const std::vector<BacktrackRecord>& records) {
+    float bestFov = std::numeric_limits<float>::max();
+    float bestExtrapolatedTickcount = 0.0f;
+
+    for (const auto& record : records) {
+        if (!Backtrack::valid(record.simulationTime))
+            continue;
+
+        const Vector& position = record.position;
+
+        const Vector direction = localPlayerEyePosition - position;
+        const float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+        const Vector normalizedDirection = { direction.x / distance, direction.y / distance, direction.z / distance };
+
+        const Vector extrapolatedHeadPosition = position + normalizedDirection * config.backtrackExtrapolatedTickcount;
+
+        // Calculate the desired metrics (e.g., FOV) based on extrapolatedHeadPosition and other parameters
+        // ...
+
+        // Example: Calculate FOV
+        const Vector angle = calculateRelativeAngle(localPlayerEyePosition, extrapolatedHeadPosition, localPlayer->getAbsAngle());
+        const float fov = std::hypotf(angle.x, angle.y);
+
+        if (fov < bestFov) {
+            bestFov = fov;
+            bestExtrapolatedTickcount = config.backtrackExtrapolatedTickcount;
+        }
+    }
+
+    return bestExtrapolatedTickcount;
+}*/
+
 float Backtrack::getLerp() noexcept
 {
     // Get the interpolation ratio.
@@ -38,179 +121,6 @@ float Backtrack::getLerp() noexcept
     // Return the interpolation factor.
     return interpolationFactor;
 }
-
-/*void Backtrack::run(UserCmd* cmd) noexcept
-{
-
-
-    if (!config->backtrack.enabled)
-        return;
-
-    if (!(cmd->buttons & UserCmd::IN_ATTACK))
-        return;
-
-    if (!localPlayer || !localPlayer->isAlive())
-        return;
-
-    if (!config->backtrack.ignoreFlash && localPlayer->isFlashed())
-        return;
-
-    const auto activeWeapon = localPlayer->getActiveWeapon();
-    if (!activeWeapon || !activeWeapon->clip())
-        return;
-
-    auto localPlayerEyePosition = localPlayer->getEyePosition();
-
-    auto bestFov{ 255.f };
-    int bestTargetIndex{ };
-    int bestRecord{ };
-
-    const auto aimPunch = activeWeapon->requiresRecoilControl() ? localPlayer->getAimPunch() : Vector{ };
-
-    for (int i = 1; i <= interfaces->engine->getMaxClients(); i++) {
-        auto entity = interfaces->entityList->getEntity(i);
-        if (!entity || entity == localPlayer.get() || entity->isDormant() || !entity->isAlive()
-            || !entity->isOtherEnemy(localPlayer.get()))
-            continue;
-
-        const auto player = Animations::getPlayer(i);
-        if (!player.gotMatrix)
-            continue;
-
-        if (player.backtrackRecords.empty() || (!config->backtrack.ignoreSmoke && memory->lineGoesThroughSmoke(localPlayer->getEyePosition(), entity->getAbsOrigin(), 1)))
-            continue;
-
-        for (int j = static_cast<int>(player.backtrackRecords.size() - 1U); j >= 0; j--)
-        {
-            const Vector localPlayerEyePosition = localPlayer->getEyePosition();
-            const Vector localPlayerAbsAngle = localPlayer->getAbsAngle();
-
-
-            if (Backtrack::valid(player.backtrackRecords.at(j).simulationTime))
-            {
-
-                //chat gpt lol
-                const auto& prevRecord = player.backtrackRecords[j - 1];
-                const auto& curRecord = player.backtrackRecords[j];
-                const Vector& prevPosition = prevRecord.positions.front();
-                const Vector& curPosition = curRecord.positions.front();
-
-                // Interpolate between previous and current tick position
-                const float interpolationFactor = getLerp();
-                const Vector interpolatedPosition = prevPosition + (curPosition - prevPosition) * interpolationFactor;
-
-                // Extrapolate the real head position using local player's absolute angle
-                const Vector extrapolatedHeadPosition = interpolatedPosition + (localPlayerEyePosition - interpolatedPosition).normalized() * 5;
-
-                // Calculate the angle between local player's eye position and the extrapolated head position
-                const Vector angle = AimbotFunction::calculateRelativeAngle(localPlayerEyePosition, extrapolatedHeadPosition, localPlayerAbsAngle);
-                const float fov = std::hypotf(angle.x, angle.y);
-
-                if (fov < bestFov)
-                {
-                    bestFov = fov;
-                    bestRecord = j;
-                    bestTargetIndex = i;
-                }
-
-            }
-        }
-    }
-
-    const auto player = Animations::getPlayer(bestTargetIndex);
-    if (!player.gotMatrix)
-        return;
-
-    if (bestRecord) {
-        const auto& record = player.backtrackRecords[bestRecord];
-        cmd->tickCount = timeToTicks(record.simulationTime + getLerp());
-    }
-}
-*/
-/*void Backtrack::run(UserCmd* cmd) noexcept
-{
-    if (!config->backtrack.enabled)
-        return;
-
-    if (!(cmd->buttons & UserCmd::IN_ATTACK))
-        return;
-
-    if (!localPlayer || !localPlayer->isAlive())
-        return;
-
-    if (!config->backtrack.ignoreFlash && localPlayer->isFlashed())
-        return;
-
-    const auto activeWeapon = localPlayer->getActiveWeapon();
-    if (!activeWeapon || !activeWeapon->clip())
-        return;
-
-    auto localPlayerEyePosition = localPlayer->getEyePosition();
-
-    auto bestFov = 255.f;
-    int bestTargetIndex = 0;
-    int bestRecordIndex = 0;
-    int bestTickCorrection = 0;
-    int bestBacktrackTick = 0; // Added variable to store the targeted backtrack tick
-
-    const auto aimPunch = activeWeapon->requiresRecoilControl() ? localPlayer->getAimPunch() : Vector{ };
-
-    for (int i = 1; i <= interfaces->engine->getMaxClients(); i++) {
-        auto entity = interfaces->entityList->getEntity(i);
-        if (!entity || entity == localPlayer.get() || entity->isDormant() || !entity->isAlive() || !entity->isOtherEnemy(localPlayer.get()))
-            continue;
-
-        const auto player = Animations::getPlayer(i);
-        if (!player.gotMatrix)
-            continue;
-
-        if (player.backtrackRecords.empty() || (!config->backtrack.ignoreSmoke && memory->lineGoesThroughSmoke(localPlayer->getEyePosition(), entity->getAbsOrigin(), 1)))
-            continue;
-
-        for (size_t j = 0; j < player.backtrackRecords.size(); j++) {
-            const auto& record = player.backtrackRecords[j];
-
-            if (!Backtrack::valid(record.simulationTime))
-                continue;
-
-            const Vector& position = record.positions.front();
-
-            // Apply custom tick correction
-            const int tickCorrection = customTickCorrection(record);
-
-            // Calculate the extrapolated head position with tick correction
-            const Vector extrapolatedHeadPosition = position + (localPlayerEyePosition - position).normalized() * 5;
-
-            // Calculate the angle between local player's eye position and the extrapolated head position
-            const Vector angle = AimbotFunction::calculateRelativeAngle(localPlayerEyePosition, extrapolatedHeadPosition, localPlayer->getAbsAngle());
-            const float fov = std::hypotf(angle.x, angle.y);
-
-            if (fov < bestFov) {
-                bestFov = fov;
-                bestTargetIndex = i;
-                bestRecordIndex = j;
-                bestTickCorrection = tickCorrection;
-                bestBacktrackTick = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection; // Calculate the targeted backtrack tick
-            }
-        }
-    }
-
-    const auto player = Animations::getPlayer(bestTargetIndex);
-    if (!player.gotMatrix)
-        return;
-
-    if (bestRecordIndex) {
-        const auto& record = player.backtrackRecords[bestRecordIndex];
-        const int correctedTickCount = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection;
-        cmd->tickCount = correctedTickCount;
-    }
-    if (!config->resolver.enable) {
-        // Output the targeted backtrack tick
-        if (bestTargetIndex && bestBacktrackTick)
-            Logger::addLog((" [Backtrack] Targeting Tick " + std::to_string(bestBacktrackTick)).c_str());
-    }
-}
-*/
 
 // Interpolates the position based on a given time within a set of recorded positions
 Vector interpolatePosition(const const std::deque<Vector>& positions, float targetTime)
@@ -282,8 +192,15 @@ void Backtrack::run(UserCmd* cmd) noexcept
     int bestTickCorrection = 0;
     int bestBacktrackTick = 0;
 
+   // float targetTickRates = memory->globalVars->currenttime; // Sample target tick rates
+    //float maxTickCount = 16.0f; // Maximum tick count
+
+    // Calculate the ideal extrapolated tick count
+   // const float extrapolatedTickCount = calculateExtrapolatedTickCount(targetTickRates.data(), targetTickRates.data() + targetTickRates.size());
+
     const auto aimPunch = activeWeapon->requiresRecoilControl() ? localPlayer->getAimPunch() : Vector{ };
 
+    // Iterate through all valid players
     for (int i = 1; i <= interfaces->engine->getMaxClients(); i++) {
         auto entity = interfaces->entityList->getEntity(i);
         if (!entity || entity == localPlayer.get() || entity->isDormant() || !entity->isAlive() || !entity->isOtherEnemy(localPlayer.get()))
@@ -296,9 +213,13 @@ void Backtrack::run(UserCmd* cmd) noexcept
         if (player.backtrackRecords.empty() || (!config->backtrack.ignoreSmoke && memory->lineGoesThroughSmoke(localPlayer->getEyePosition(), entity->getAbsOrigin(), 1)))
             continue;
 
-        for (size_t j = 0; j < player.backtrackRecords.size(); j++) {
-            const auto& record = player.backtrackRecords[j];
+        const float interpolationAmount = getLerp();
 
+        // Find the best backtrack tick for the current player
+        int bestPlayerTick = 0;
+        float bestPlayerFov = 255.f;
+
+        for (const auto& record : player.backtrackRecords) {
             if (!Backtrack::valid(record.simulationTime))
                 continue;
 
@@ -306,18 +227,22 @@ void Backtrack::run(UserCmd* cmd) noexcept
 
             const int tickCorrection = customTickCorrection(record);
 
-            const Vector extrapolatedHeadPosition = position + (localPlayerEyePosition - position).normalized() * 5;
+            const Vector extrapolatedHeadPosition = position + (localPlayerEyePosition - position).normalized()* calculateExtrapolatedTickcount(entity->velocity().length2D());//config->backtrack.extrapolatedTickcount;
 
-            const Vector angle = AimbotFunction::calculateRelativeAngle(localPlayerEyePosition, extrapolatedHeadPosition, localPlayer->getAbsAngle());
+            const Vector angle = AimbotFunction::calculateRelativeAngle(localPlayerEyePosition, extrapolatedHeadPosition, entity->getAbsAngle());
             const float fov = std::hypotf(angle.x, angle.y);
 
-            if (fov < bestFov) {
-                bestFov = fov;
-                bestTargetIndex = i;
-                bestRecordIndex = j;
-                bestTickCorrection = tickCorrection;
-                bestBacktrackTick = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection;
+            if (fov < bestPlayerFov) {
+                bestPlayerFov = fov;
+                bestPlayerTick = timeToTicks(record.simulationTime + interpolationAmount) + tickCorrection;
             }
+        }
+
+        // Update the best backtrack tick if a better one is found
+        if (bestPlayerFov < bestFov) {
+            bestFov = bestPlayerFov;
+            bestTargetIndex = i;
+            bestBacktrackTick = bestPlayerTick;
         }
     }
 
@@ -325,26 +250,20 @@ void Backtrack::run(UserCmd* cmd) noexcept
     if (!player.gotMatrix)
         return;
 
-    if (bestRecordIndex) {
+    if (bestTargetIndex && bestBacktrackTick) {
+        //Logger::addLog((" [Backtrack] Targeting Tick " + std::to_string(bestBacktrackTick)).c_str());
+
+        // Perform additional complex backtracking operations using the bestBacktrackTick value
         const auto& record = player.backtrackRecords[bestRecordIndex];
-        const int correctedTickCount = timeToTicks(record.simulationTime + getLerp()) + bestTickCorrection;
-        cmd->tickCount = correctedTickCount;
+        const float backtrackTime = record.simulationTime + getLerp();
+        const Vector backtrackPosition = interpolatePosition(record.positions, backtrackTime);
+        const Vector adjustedAimPosition = adjustAimPosition(backtrackPosition, aimPunch);
 
+        // Use the adjusted aim position for further processing or aiming
+        // ...
     }
-
-        if (bestTargetIndex && bestBacktrackTick) {
-            Logger::addLog((" [Backtrack] Targeting Tick " + std::to_string(bestBacktrackTick)).c_str());
-
-            // Perform additional complex backtracking operations using the bestBacktrackTick value
-            const auto& record = player.backtrackRecords[bestRecordIndex];
-            const float backtrackTime = record.simulationTime + getLerp();
-            const Vector backtrackPosition = interpolatePosition(record.positions, backtrackTime);
-            const Vector adjustedAimPosition = adjustAimPosition(backtrackPosition, aimPunch);
-
-            // Use the adjusted aim position for further processing or aiming
-            // ...
-        }
 }
+
 
 
 int Backtrack::customTickCorrection(const Animations::Players::Record& record) noexcept
